@@ -85,6 +85,22 @@ function BreakButton({ logCoffee, setMascot, user, authUser, activeGroupCode }) 
     // Create real invite in Firestore
     if (activeGroupCode && authUser) {
       await createInvite(activeGroupCode, authUser.uid, user?.userName || 'Anonimo', user?.coffeeType || 'espresso');
+      
+      // Trigger push notifications via Vercel Backend
+      try {
+        await fetch('/api/send-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupCode: activeGroupCode,
+            senderName: user?.userName || 'Anonimo',
+            senderUid: authUser.uid,
+            coffeeType: user?.coffeeType || 'espresso'
+          })
+        });
+      } catch (err) {
+        console.error("Failed to send push notification", err);
+      }
     }
 
     setTimeout(() => {

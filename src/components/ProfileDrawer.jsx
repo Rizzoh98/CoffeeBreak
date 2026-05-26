@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getCoffeeType, getSugarLevel, calculateCalories, COFFEE_TYPES, SUGAR_LEVELS } from '../data/coffeeTypes';
 import { leaveGroup } from '../services/firestore';
+import { requestNotificationPermission } from '../services/notifications';
 import GroupSetup from './GroupSetup';
 
 export default function ProfileDrawer() {
@@ -94,6 +95,25 @@ export default function ProfileDrawer() {
               <div className="profile-pref-total">
                 <span>= {kcalPerCoffee} kcal per caffè</span>
               </div>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="profile-section">
+            <h4 className="profile-section-title">🔔 Notifiche</h4>
+            <div className="profile-pref-card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Ricevi un avviso quando c'è un break</span>
+              <button 
+                className="btn-primary" 
+                style={{ padding: '8px 12px', fontSize: '14px', margin: 0 }}
+                onClick={async () => {
+                  const token = await requestNotificationPermission(authUser?.uid);
+                  if (token) alert("Notifiche attivate con successo!");
+                  else alert("Permesso negato o non supportato.");
+                }}
+              >
+                Attiva
+              </button>
             </div>
           </div>
 

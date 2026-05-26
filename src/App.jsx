@@ -27,6 +27,25 @@ export default function App() {
   const { state } = useApp();
   const { isAuthenticated, authLoading } = useAuth();
 
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      import('./services/notifications').then(({ onMessageListener }) => {
+        const unsubscribe = onMessageListener((payload) => {
+          console.log('[Foreground Push]', payload);
+          if (Notification.permission === 'granted') {
+             new Notification(payload.notification.title, {
+               body: payload.notification.body,
+               icon: '/icons/icon-192x192.png'
+             });
+          }
+        });
+        return () => {
+          if (unsubscribe) unsubscribe();
+        };
+      });
+    }
+  }, [isAuthenticated]);
+
   // Background effects (always rendered)
   const bgEffects = (
     <>
