@@ -17,6 +17,9 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
 
   const handleCreateGroup = async () => {
     if (groupName.trim().length < 2) return;
+    setJoining(true);
+    setJoinError('');
+    
     const code = generateGroupCode();
     const userName = state.user?.userName || authUser?.displayName || 'Anonimo';
     
@@ -24,7 +27,10 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
     const group = await createGroup(code, groupName.trim(), authUser.uid, userName);
     if (group) {
       setCreatedGroup(group);
+    } else {
+      setJoinError('Errore di connessione o permessi insufficienti. Riprova.');
     }
+    setJoining(false);
   };
 
   const handleConfirmCreate = () => {
@@ -116,10 +122,15 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
               autoComplete="off"
             />
           </div>
-          <button className="onboarding-btn" disabled={groupName.trim().length < 2} onClick={handleCreateGroup}>
-            <span className="btn-text">Crea Gruppo ✨</span>
+          
+          {joinError && (
+            <p className="join-error">❌ {joinError}</p>
+          )}
+          
+          <button className="onboarding-btn" disabled={groupName.trim().length < 2 || joining} onClick={handleCreateGroup}>
+            <span className="btn-text">{joining ? 'Creazione in corso...' : 'Crea Gruppo ✨'}</span>
           </button>
-          <button className="group-back-btn" onClick={() => setMode(null)}>← Indietro</button>
+          <button className="group-back-btn" onClick={() => { setMode(null); setJoinError(''); }}>← Indietro</button>
         </div>
       )}
 
