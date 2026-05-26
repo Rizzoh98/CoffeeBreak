@@ -25,9 +25,11 @@ export const requestNotificationPermission = async (uid) => {
       const m = messaging || initializeMessaging();
       if (!m) return null;
 
-      // Get FCM Token
+      // Get FCM Token using the existing PWA Service Worker
+      const registration = await navigator.serviceWorker.ready;
       const token = await getToken(m, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: registration
       });
       
       if (token) {

@@ -6,7 +6,7 @@ import { respondToInvite } from '../services/firestore';
 import { getCoffeeType } from '../data/coffeeTypes';
 
 export default function InviteOverlay() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { authUser } = useAuth();
   
   const activeGroupCode = state.user?.activeGroupCode;
@@ -19,6 +19,14 @@ export default function InviteOverlay() {
   const handleResponse = async (status) => {
     if (authUser && state.user) {
       await respondToInvite(activeInvite.id, authUser.uid, state.user.userName, status);
+      
+      if (status === 'coming' || status === '5min') {
+        import('../../utils/helpers').then(({ launchConfetti }) => {
+          launchConfetti();
+        });
+        // Switch to the break screen
+        dispatch({ type: 'NAVIGATE', payload: 'break' });
+      }
     }
   };
 
