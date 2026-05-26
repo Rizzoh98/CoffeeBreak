@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getCoffeeType, getSugarLevel, calculateCalories, COFFEE_TYPES, SUGAR_LEVELS } from '../data/coffeeTypes';
+import { leaveGroup } from '../services/firestore';
 import GroupSetup from './GroupSetup';
 
 export default function ProfileDrawer() {
@@ -10,6 +11,7 @@ export default function ProfileDrawer() {
   const { user, stats, coffeeLog } = state;
   const [editing, setEditing] = useState(false);
   const [addingGroup, setAddingGroup] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(null); // group code to confirm
   const [editName, setEditName] = useState(user?.userName || '');
   const [editCoffee, setEditCoffee] = useState(user?.coffeeType || '');
   const [editSugar, setEditSugar] = useState(user?.sugarLevel ?? 1);
@@ -191,6 +193,24 @@ export default function ProfileDrawer() {
                         <span className="group-code">{g.code}</span>
                       </div>
                       {g.isCreator && <p className="profile-group-role">👑 Creatore del gruppo</p>}
+                      
+                      {confirmLeave === g.code ? (
+                        <div className="leave-confirm">
+                          <p className="leave-confirm-text">Sei sicuro di voler uscire?</p>
+                          <div className="leave-confirm-actions">
+                            <button className="leave-confirm-yes" onClick={async () => {
+                              await leaveGroup(g.code, authUser.uid);
+                              dispatch({ type: 'REMOVE_GROUP', payload: g.code });
+                              setConfirmLeave(null);
+                            }}>Sì, esci</button>
+                            <button className="leave-confirm-no" onClick={() => setConfirmLeave(null)}>Annulla</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button className="leave-group-btn" onClick={() => setConfirmLeave(g.code)}>
+                          🚪 Esci dal gruppo
+                        </button>
+                      )}
                     </div>
                   );
                 })}

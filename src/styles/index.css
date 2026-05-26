@@ -3325,6 +3325,70 @@ body::before {
     background: var(--surface-glass);
 }
 
+.leave-group-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    padding: 8px 0 0;
+    cursor: pointer;
+    font-family: var(--font-body);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.leave-group-btn:hover {
+    opacity: 1;
+    color: #ff6b6b;
+}
+
+.leave-confirm {
+    margin-top: 8px;
+    padding: 10px;
+    background: rgba(255, 107, 107, 0.08);
+    border: 1px solid rgba(255, 107, 107, 0.25);
+    border-radius: var(--radius-sm);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.leave-confirm-text {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.leave-confirm-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.leave-confirm-yes {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: #ff6b6b;
+    color: #fff;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.leave-confirm-no {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
 /* Real-time Colleagues List */
 .colleagues-section {
     margin: 16px 0;

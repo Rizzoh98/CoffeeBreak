@@ -159,6 +159,37 @@ export function listenToGroupMembers(groupCode, callback) {
   });
 }
 
+/**
+ * Leaves a group. Removes the user from the group's member list.
+ * If no members remain, deletes the group document.
+ */
+export async function leaveGroup(code, uid) {
+  try {
+    const groupRef = doc(db, GROUPS_COL, code);
+    const groupSnap = await getDoc(groupRef);
+    
+    if (!groupSnap.exists()) return true;
+    
+    const groupData = groupSnap.data();
+    const updatedMembers = (groupData.members || []).filter(m => m.uid !== uid);
+    
+    if (updatedMembers.length === 0) {
+      // Last member leaving — delete the group
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(groupRef);
+      console.log("[Firestore] Group deleted (empty):", code);
+    } else {
+      await updateDoc(groupRef, { members: updatedMembers });
+      console.log("[Firestore] User left group:", code);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("[Firestore] Error leaving group:", error);
+    return false;
+  }
+}
+
 // ============================================================
 // INVITES SYSTEM
 // ============================================================

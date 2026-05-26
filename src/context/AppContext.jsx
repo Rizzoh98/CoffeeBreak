@@ -100,6 +100,18 @@ function reducer(state, action) {
     }
     case 'SET_ACTIVE_GROUP':
       return { ...state, user: { ...state.user, activeGroupCode: action.payload } };
+    case 'REMOVE_GROUP': {
+      const filtered = (state.user.groups || []).filter(g => g.code !== action.payload);
+      const wasActive = state.user.activeGroupCode === action.payload;
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          groups: filtered,
+          activeGroupCode: wasActive ? (filtered[0]?.code || null) : state.user.activeGroupCode
+        }
+      };
+    }
     case 'SET_ONBOARDING_STEP':
       return { ...state, onboardingStep: action.payload };
     case 'NAVIGATE':
