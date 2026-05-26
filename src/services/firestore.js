@@ -110,19 +110,20 @@ export async function respondToInvite(inviteId, uid, name, status) {
 export function listenToActiveInvite(groupCode, callback) {
   if (!groupCode) return () => {};
   
-  // We look for the most recent active invite for this group
-  // To avoid complex index requirements initially, we can just query active invites
-  // and sort/limit in memory if needed, but since we expect low volume, this is fine.
+  // To avoid complex index requirements (Firestore requires a composite index for multiple where clauses),
+  // we query only by groupCode and filter by active status in memory.
   const q = query(
     collection(db, INVITES_COL),
-    where('groupCode', '==', groupCode),
-    where('status', '==', 'active')
+    where('groupCode', '==', groupCode)
   );
 
   return onSnapshot(q, (snapshot) => {
     const invites = [];
     snapshot.forEach((docSnap) => {
-      invites.push({ id: docSnap.id, ...docSnap.data() });
+      const data = docSnap.data();
+      if (data.status === 'active') {
+        invites.push({ id: docSnap.id, ...data });
+      }
     });
     // Sort by timestamp descending in memory (avoiding firestore composite index requirement)
     invites.sort((a, b) => {

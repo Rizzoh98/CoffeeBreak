@@ -12,9 +12,9 @@ export default function InviteOverlay() {
   const activeGroupCode = state.user?.activeGroupCode;
   const activeInvite = useActiveInvite(activeGroupCode);
 
-  // If no active invite, or the current user is the one who sent it, don't show the receive overlay
+  // If no active invite, don't show the receive overlay.
+  // (We temporarily allow seeing your own invites so you can test it with a single account)
   if (!activeInvite) return null;
-  if (activeInvite.senderUid === authUser?.uid) return null;
 
   const handleResponse = async (status) => {
     if (authUser && state.user) {

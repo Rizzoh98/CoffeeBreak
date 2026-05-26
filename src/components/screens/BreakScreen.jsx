@@ -15,8 +15,8 @@ export default function BreakScreen() {
   const activeGroupCode = state.user?.activeGroupCode;
   const members = useGroupMembers(activeGroupCode);
   
-  // Colleghi escludendo l'utente corrente
-  const colleagues = members.filter(m => m.uid !== authUser?.uid);
+  // Mostriamo tutti i membri, incluso se stesso, per permettere il test con un solo account
+  const colleagues = members;
 
   return (
     <section className="screen active" data-screen="break">
@@ -61,7 +61,7 @@ function ColleaguesList({ colleagues }) {
           return (
             <div key={c.uid} className="colleague-avatar-card">
                <div className="avatar-circle">{c.user?.userName?.charAt(0).toUpperCase()}</div>
-               <span className="colleague-name">{c.user?.userName?.split(' ')[0]}</span>
+               <span className="colleague-name">{c.user?.userName?.split(' ')[0]} {c.uid === authUser?.uid ? '(Tu)' : ''}</span>
                <span className="colleague-status">{coffee.emoji} {c.stats?.breakToday || 0}</span>
             </div>
           );
