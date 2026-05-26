@@ -198,10 +198,12 @@ export default function ProfileDrawer() {
                         <div className="leave-confirm">
                           <p className="leave-confirm-text">Sei sicuro di voler uscire?</p>
                           <div className="leave-confirm-actions">
-                            <button className="leave-confirm-yes" onClick={async () => {
-                              await leaveGroup(g.code, authUser.uid);
+                            <button className="leave-confirm-yes" onClick={() => {
+                              // Aggiornamento UI ottimistico (istantaneo)
                               dispatch({ type: 'REMOVE_GROUP', payload: g.code });
                               setConfirmLeave(null);
+                              // Chiamata backend asincrona senza bloccare l'UI
+                              leaveGroup(g.code, authUser.uid);
                             }}>Sì, esci</button>
                             <button className="leave-confirm-no" onClick={() => setConfirmLeave(null)}>Annulla</button>
                           </div>
