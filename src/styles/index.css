@@ -3122,7 +3122,8 @@ body::before {
 /* ============================================
    Responsive
    ============================================ */
-@media (min-width: 480px) {
+@media (min-width: 480px) and (max-width: 767px) {
+    /* Tablet Portrait / Large Phones: keep it centered like mobile */
     .screens-container {
         max-width: 480px;
         margin: 0 auto;
@@ -3133,6 +3134,91 @@ body::before {
         left: 50%;
         transform: translateX(-50%);
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+}
+
+@media (min-width: 768px) {
+    /* Desktop / Landscape Tablet: Expanded App Layout */
+    
+    html {
+        font-size: clamp(16px, 1.2vw, 18px);
+    }
+
+    .app {
+        display: flex;
+        flex-direction: row-reverse;
+        max-width: 1400px;
+        margin: 0 auto;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .screens-container {
+        flex: 1;
+        max-width: none;
+        padding-bottom: 20px; /* Remove mobile bottom nav padding */
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    /* Transform Bottom Nav into a Left Sidebar */
+    .bottom-nav {
+        position: relative;
+        flex-direction: column;
+        width: 120px;
+        height: 100vh;
+        border-radius: 0;
+        background: var(--surface-glass);
+        border-top: none;
+        border-right: 1px solid var(--border-subtle);
+        transform: none;
+        justify-content: center;
+        gap: 40px;
+        left: 0;
+    }
+
+    .nav-btn {
+        flex: none;
+        padding: 10px;
+    }
+    
+    .nav-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+    }
+
+    .nav-label {
+        font-size: 0.85rem;
+    }
+
+    /* Expand Grids for Desktop */
+    .coffee-type-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    
+    .badges-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    
+    .mood-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    }
+    
+    .riddles-list {
+        grid-template-columns: repeat(2, 1fr);
+        display: grid;
+        gap: 16px;
+    }
+    
+    /* Adjust Header for Desktop */
+    .header {
+        position: sticky;
+        background: rgba(13, 10, 6, 0.8);
+    }
+    
+    /* Onboarding Overlay adjustment */
+    .onboarding-overlay {
+        position: absolute;
     }
 }
 
