@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { BADGES, checkBadgeCondition } from '../data/badges';
 import { calculateCalories } from '../data/coffeeTypes';
+import { useAuth } from './AuthContext';
+import { syncUserStateToCloud, fetchUserStateFromCloud } from '../services/firestore';
 
 const AppContext = createContext();
 
@@ -140,6 +142,13 @@ function reducer(state, action) {
         stats: { ...state.stats, visitedSections: visited, sectionsVisited: Object.keys(visited).length }
       };
     }
+    case 'RESTORE_STATE_FROM_CLOUD': {
+      return {
+        ...state,
+        ...action.payload,
+        onboardingStep: 3 // If they have cloud state, they finished onboarding
+      };
+    }
     default:
       return state;
   }
@@ -148,26 +157,59 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, loadSavedState);
   const mascotTimerRef = useRef(null);
+  const { authUser, isAuthenticated } = useAuth();
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
-  // Persist user to localStorage
+  // Load from Cloud on Login
+  useEffect(() => {
+    async function loadCloudState() {
+      if (!authUser) return;
+      setIsCloudSyncing(true);
+      const cloudState = await fetchUserStateFromCloud(authUser.uid);
+      if (cloudState) {
+        // Strip out lastSynced so we don't mess up local state types
+        const { lastSynced, ...cleanState } = cloudState;
+        dispatch({ type: 'RESTORE_STATE_FROM_CLOUD', payload: cleanState });
+      }
+      setIsCloudSyncing(false);
+    }
+    loadCloudState();
+  }, [authUser]);
+
+  // Persist user to localStorage & Cloud
   useEffect(() => {
     if (state.user) {
       try {
         localStorage.setItem('coffeebreak_user', JSON.stringify(state.user));
+        if (authUser && !isCloudSyncing) {
+            syncUserStateToCloud(authUser.uid, {
+                user: state.user,
+                stats: state.stats,
+                unlockedBadges: state.unlockedBadges,
+                moodToday: state.moodToday,
+                pollVotedDays: state.pollVotedDays,
+                coffeeLog: state.coffeeLog
+            });
+        }
       } catch { /* ignore */ }
     }
   }, [state.user]);
 
-  // Persist state changes to localStorage
+  // Persist state changes to localStorage & Cloud
   useEffect(() => {
     try {
-      localStorage.setItem('coffeebreak_state', JSON.stringify({
+      const stateToSave = {
         stats: state.stats,
         unlockedBadges: state.unlockedBadges,
         moodToday: state.moodToday,
         pollVotedDays: state.pollVotedDays,
         coffeeLog: state.coffeeLog
-      }));
+      };
+      localStorage.setItem('coffeebreak_state', JSON.stringify(stateToSave));
+      
+      if (authUser && state.user && !isCloudSyncing) {
+          syncUserStateToCloud(authUser.uid, { user: state.user, ...stateToSave });
+      }
     } catch { /* ignore */ }
   }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog]);
 
