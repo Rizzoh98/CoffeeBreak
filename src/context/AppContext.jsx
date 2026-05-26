@@ -193,7 +193,7 @@ export function AppProvider({ children }) {
         }
       } catch { /* ignore */ }
     }
-  }, [state.user]);
+  }, [state.user, authUser, isCloudSyncing, state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog]);
 
   // Persist state changes to localStorage & Cloud
   useEffect(() => {
@@ -211,7 +211,7 @@ export function AppProvider({ children }) {
           syncUserStateToCloud(authUser.uid, { user: state.user, ...stateToSave });
       }
     } catch { /* ignore */ }
-  }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog]);
+  }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog, authUser, state.user, isCloudSyncing]);
 
   // Update streak on load
   useEffect(() => {
