@@ -3251,3 +3251,68 @@ body::before {
         font-size: 0.55rem;
     }
 }
+
+/* Multi-Group Styles */
+.profile-groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-group-card.active {
+    border-color: var(--color-caramel);
+    box-shadow: 0 0 10px rgba(212, 148, 58, 0.2);
+}
+
+.group-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.active-badge {
+    background: var(--color-success-soft);
+    color: var(--color-success);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.set-active-btn {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.set-active-btn:hover {
+    border-color: var(--color-caramel);
+    color: var(--color-caramel-light);
+}
+
+.add-group-btn {
+    background: transparent;
+    border: 1px dashed var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.add-group-btn:hover {
+    border-color: var(--color-caramel);
+    color: var(--color-caramel-light);
+    background: var(--surface-glass);
+}

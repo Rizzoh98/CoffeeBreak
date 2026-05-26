@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getCoffeeType, getSugarLevel, calculateCalories, COFFEE_TYPES, SUGAR_LEVELS } from '../data/coffeeTypes';
+import GroupSetup from './GroupSetup';
 
 export default function ProfileDrawer() {
   const { state, dispatch, setUser } = useApp();
   const { authUser, signOut } = useAuth();
   const { user, stats, coffeeLog } = state;
   const [editing, setEditing] = useState(false);
+  const [addingGroup, setAddingGroup] = useState(false);
   const [editName, setEditName] = useState(user?.userName || '');
   const [editCoffee, setEditCoffee] = useState(user?.coffeeType || '');
   const [editSugar, setEditSugar] = useState(user?.sugarLevel ?? 1);
@@ -153,19 +155,49 @@ export default function ProfileDrawer() {
           )}
 
           {/* Group Info */}
-          {user.group && (
-            <div className="profile-section">
-              <h4 className="profile-section-title">👥 Gruppo</h4>
-              <div className="profile-group-card">
-                <p className="profile-group-name">{user.group.name}</p>
-                <div className="profile-group-code-display">
-                  <span className="group-code-label">Codice:</span>
-                  <span className="group-code">{user.group.code}</span>
-                </div>
-                {user.group.isCreator && <p className="profile-group-role">👑 Creatore del gruppo</p>}
+          <div className="profile-section">
+            <h4 className="profile-section-title">👥 Gruppi</h4>
+            {addingGroup ? (
+              <div className="profile-add-group-container">
+                <GroupSetup 
+                  showBack={true} 
+                  onBack={() => setAddingGroup(false)} 
+                  onComplete={(group) => {
+                    if (group) dispatch({ type: 'ADD_GROUP', payload: group });
+                    setAddingGroup(false);
+                  }} 
+                  onSkip={() => setAddingGroup(false)}
+                />
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="profile-groups-list">
+                {user.groups?.map((g, idx) => {
+                  const isActive = g.code === user.activeGroupCode;
+                  return (
+                    <div key={idx} className={`profile-group-card ${isActive ? 'active' : ''}`}>
+                      <div className="group-card-header">
+                        <p className="profile-group-name">{g.name} {isActive && <span className="active-badge">Attivo</span>}</p>
+                        {!isActive && (
+                          <button className="set-active-btn" onClick={() => dispatch({ type: 'SET_ACTIVE_GROUP', payload: g.code })}>
+                            Seleziona
+                          </button>
+                        )}
+                      </div>
+                      <div className="profile-group-code-display">
+                        <span className="group-code-label">Codice:</span>
+                        <span className="group-code">{g.code}</span>
+                      </div>
+                      {g.isCreator && <p className="profile-group-role">👑 Creatore del gruppo</p>}
+                    </div>
+                  );
+                })}
+                
+                <button className="add-group-btn" onClick={() => setAddingGroup(true)}>
+                  ➕ Unisciti a un nuovo gruppo
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Edit Profile */}
           {!editing ? (

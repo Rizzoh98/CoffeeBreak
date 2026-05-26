@@ -82,10 +82,20 @@ export default function Onboarding() {
     setStep(2);
   };
 
-  // Step 2: Group complete
+  // Step 2: Group Setup Complete
   const handleGroupComplete = (group) => {
-    const updatedUser = { ...state.user, group };
-    setUser(updatedUser);
+    // If skipping group, just mark onboarding complete
+    if (!group) {
+      dispatch({ type: 'SET_ONBOARDING_STEP', payload: 3 });
+      return;
+    }
+
+    // Save initial group to user profile in new format
+    setUser({ 
+        ...state.user, 
+        groups: [group],
+        activeGroupCode: group.code
+    });
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: 3 });
   };
 

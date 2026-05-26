@@ -44,10 +44,17 @@ function loadSavedState() {
     const user = userRaw ? JSON.parse(userRaw) : null;
     const saved = stateRaw ? JSON.parse(stateRaw) : {};
 
+    // Migrate old user object to multi-group
+    if (user && user.group && !user.groups) {
+      user.groups = [user.group];
+      user.activeGroupCode = user.group.code;
+      delete user.group;
+    }
+
     // Determine onboarding step
     let onboardingStep = 0;
     if (user) {
-      if (user.coffeeType !== undefined && user.group !== undefined) {
+      if (user.coffeeType !== undefined && (user.groups !== undefined || user.group !== undefined)) {
         onboardingStep = 3; // fully done
       } else if (user.coffeeType !== undefined) {
         onboardingStep = 2; // needs group
@@ -78,6 +85,16 @@ function reducer(state, action) {
       return { ...state, user: action.payload };
     case 'UPDATE_USER':
       return { ...state, user: { ...state.user, ...action.payload } };
+    case 'ADD_GROUP': {
+      const currentGroups = state.user.groups || [];
+      const newGroups = [...currentGroups, action.payload];
+      return {
+        ...state,
+        user: { ...state.user, groups: newGroups, activeGroupCode: action.payload.code }
+      };
+    }
+    case 'SET_ACTIVE_GROUP':
+      return { ...state, user: { ...state.user, activeGroupCode: action.payload } };
     case 'SET_ONBOARDING_STEP':
       return { ...state, onboardingStep: action.payload };
     case 'NAVIGATE':
@@ -143,9 +160,16 @@ function reducer(state, action) {
       };
     }
     case 'RESTORE_STATE_FROM_CLOUD': {
+      let restoredUser = action.payload.user;
+      if (restoredUser && restoredUser.group && !restoredUser.groups) {
+        restoredUser.groups = [restoredUser.group];
+        restoredUser.activeGroupCode = restoredUser.group.code;
+        delete restoredUser.group;
+      }
       return {
         ...state,
         ...action.payload,
+        user: restoredUser,
         onboardingStep: 3 // If they have cloud state, they finished onboarding
       };
     }
