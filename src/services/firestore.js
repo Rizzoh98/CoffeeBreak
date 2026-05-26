@@ -66,7 +66,9 @@ export async function fetchUserStateFromCloud(uid) {
 export async function createGroup(code, name, creatorUid, creatorName) {
   try {
     const groupRef = doc(db, GROUPS_COL, code);
-    await setDoc(groupRef, {
+    
+    // Use Promise.race to enforce a timeout (Firebase sometimes hangs on permission errors or bad connections)
+    const writePromise = setDoc(groupRef, {
       name,
       code,
       creatorUid,
@@ -77,6 +79,13 @@ export async function createGroup(code, name, creatorUid, creatorName) {
         joinedAt: new Date().toISOString()
       }]
     });
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    );
+    
+    await Promise.race([writePromise, timeoutPromise]);
+
     console.log("[Firestore] Group created:", code, name);
     return { name, code, isCreator: true };
   } catch (error) {
@@ -92,7 +101,14 @@ export async function createGroup(code, name, creatorUid, creatorName) {
 export async function joinGroup(code, uid, userName) {
   try {
     const groupRef = doc(db, GROUPS_COL, code);
-    const groupSnap = await getDoc(groupRef);
+    
+    // Add timeout to prevent hanging on bad connections/permissions
+    const getPromise = getDoc(groupRef);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    );
+    
+    const groupSnap = await Promise.race([getPromise, timeoutPromise]);
     
     if (!groupSnap.exists()) {
       console.warn("[Firestore] Group not found:", code);
@@ -105,13 +121,14 @@ export async function joinGroup(code, uid, userName) {
     const alreadyMember = groupData.members?.some(m => m.uid === uid);
     if (!alreadyMember) {
       // Add user to the group's member list
-      await updateDoc(groupRef, {
+      const updatePromise = updateDoc(groupRef, {
         members: arrayUnion({
           uid,
           name: userName,
           joinedAt: new Date().toISOString()
         })
       });
+      await Promise.race([updatePromise, timeoutPromise]);
       console.log("[Firestore] User joined group:", code);
     }
     

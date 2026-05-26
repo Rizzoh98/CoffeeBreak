@@ -17,6 +17,12 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
 
   const handleCreateGroup = async () => {
     if (groupName.trim().length < 2) return;
+    
+    if (!authUser?.uid) {
+      setJoinError('Autenticazione in corso, attendi qualche secondo...');
+      return;
+    }
+
     setJoining(true);
     setJoinError('');
     
