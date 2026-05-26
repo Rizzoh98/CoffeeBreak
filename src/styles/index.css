@@ -3316,3 +3316,172 @@ body::before {
     color: var(--color-caramel-light);
     background: var(--surface-glass);
 }
+
+/* Real-time Colleagues List */
+.colleagues-section {
+    margin: 16px 0;
+    width: 100%;
+}
+
+.colleagues-horizontal-list {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 8px 0;
+    scrollbar-width: none; /* Firefox */
+}
+
+.colleagues-horizontal-list::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.colleague-avatar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 10px;
+    min-width: 80px;
+}
+
+.colleague-avatar-card .avatar-circle {
+    width: 40px;
+    height: 40px;
+    background: var(--color-caramel);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 6px;
+    font-size: 1.2rem;
+}
+
+.colleague-name {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.colleague-status {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Invite Overlay */
+.invite-overlay-container {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13, 10, 6, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.invite-overlay-content {
+    background: var(--surface-card);
+    border: 1px solid var(--color-caramel);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    text-align: center;
+    width: 90%;
+    max-width: 320px;
+    box-shadow: 0 10px 40px rgba(212, 148, 58, 0.3);
+    animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.invite-icon-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    background: var(--surface-glass);
+    border-radius: 50%;
+}
+
+.invite-pulse {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 50%;
+    border: 2px solid var(--color-caramel);
+    animation: pulse 2s infinite;
+}
+
+.invite-title {
+    color: var(--color-caramel-light);
+    margin-bottom: 8px;
+    font-size: 1.5rem;
+}
+
+.invite-message {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 24px;
+}
+
+.invite-message strong {
+    color: var(--text-primary);
+}
+
+.invite-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.invite-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.invite-btn.coming {
+    background: var(--color-caramel);
+    color: #fff;
+}
+
+.invite-btn.min5 {
+    background: var(--surface-glass);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.invite-btn.skip {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-subtle);
+}
+
+.invite-btn:hover {
+    transform: translateY(-2px);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}

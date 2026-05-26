@@ -8,6 +8,7 @@ import Mascot from './components/Mascot';
 import ToastContainer from './components/ToastContainer';
 import BadgePopup from './components/BadgePopup';
 import ProfileDrawer from './components/ProfileDrawer';
+import InviteOverlay from './components/InviteOverlay';
 import CuriositaScreen from './components/screens/CuriositaScreen';
 import GiochiScreen from './components/screens/GiochiScreen';
 import BreakScreen from './components/screens/BreakScreen';
@@ -82,6 +83,7 @@ export default function App() {
 
       <ProfileDrawer />
       <BadgePopup />
+      <InviteOverlay />
     </>
   );
 }

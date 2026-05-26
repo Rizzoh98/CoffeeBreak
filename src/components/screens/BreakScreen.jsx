@@ -1,11 +1,22 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { FAKE_COLLEAGUES } from '../../data/colleagues';
 import { shuffleArray, launchConfetti } from '../../utils/helpers';
 import { useTimer } from '../../hooks/useTimer';
+import { useGroupMembers } from '../../hooks/useRealtime';
+import { createInvite } from '../../services/firestore';
+import { getCoffeeType } from '../../data/coffeeTypes';
 
 export default function BreakScreen() {
   const { state, incrementStat, dispatch, setMascot, addToast, logCoffee } = useApp();
+  const { authUser } = useAuth();
+
+  const activeGroupCode = state.user?.activeGroupCode;
+  const members = useGroupMembers(activeGroupCode);
+  
+  // Colleghi escludendo l'utente corrente
+  const colleagues = members.filter(m => m.uid !== authUser?.uid);
 
   return (
     <section className="screen active" data-screen="break">
@@ -14,32 +25,68 @@ export default function BreakScreen() {
         <p className="screen-subtitle">Richiama i tuoi colleghi!</p>
       </div>
 
-      <BreakButton logCoffee={logCoffee} setMascot={setMascot} user={state.user} />
+      <BreakButton 
+        logCoffee={logCoffee} 
+        setMascot={setMascot} 
+        user={state.user} 
+        authUser={authUser}
+        activeGroupCode={activeGroupCode}
+      />
+
+      {activeGroupCode && colleagues.length > 0 && (
+        <ColleaguesList colleagues={colleagues} />
+      )}
 
       <div className="confetti-container" id="confetti-container" aria-hidden="true" />
 
-      <RouletteSection userName={state.user?.userName} incrementStat={incrementStat} setMascot={setMascot} />
+      <RouletteSection 
+        userName={state.user?.userName} 
+        incrementStat={incrementStat} 
+        setMascot={setMascot} 
+        members={members}
+      />
 
       <TimerSection addToast={addToast} />
     </section>
   );
 }
 
+function ColleaguesList({ colleagues }) {
+  return (
+    <div className="colleagues-section">
+      <span className="section-label">👥 Nel tuo gruppo ora</span>
+      <div className="colleagues-horizontal-list">
+        {colleagues.map(c => {
+          const coffee = getCoffeeType(c.user?.coffeeType || 'espresso');
+          return (
+            <div key={c.uid} className="colleague-avatar-card">
+               <div className="avatar-circle">{c.user?.userName?.charAt(0).toUpperCase()}</div>
+               <span className="colleague-name">{c.user?.userName?.split(' ')[0]}</span>
+               <span className="colleague-status">{coffee.emoji} {c.stats?.breakToday || 0}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* --- Break Button --- */
-function BreakButton({ logCoffee, setMascot, user }) {
+function BreakButton({ logCoffee, setMascot, user, authUser, activeGroupCode }) {
   const [status, setStatus] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
-  const [notifiedUsers, setNotifiedUsers] = useState([]);
 
-  const sendBreak = () => {
+  const sendBreak = async () => {
     setMascot('drinking');
     // Log coffee with user's preferences — auto-tracks calories
     logCoffee(user?.coffeeType || 'espresso', user?.sugarLevel ?? 0);
 
+    // Create real invite in Firestore
+    if (activeGroupCode && authUser) {
+      await createInvite(activeGroupCode, authUser.uid, user.userName, user.coffeeType || 'espresso');
+    }
+
     setTimeout(() => {
-      const shuffled = shuffleArray(FAKE_COLLEAGUES);
-      const count = 3 + Math.floor(Math.random() * 5);
-      setNotifiedUsers(shuffled.slice(0, count));
       setShowOverlay(true);
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       launchConfetti();
@@ -74,19 +121,9 @@ function BreakButton({ logCoffee, setMascot, user }) {
       </div>
 
       {showOverlay && (
-        <div className="notification-overlay active">
-          <div className="notification-content">
-            <div className="notif-icon">🔔</div>
-            <h2>Notifica Inviata!</h2>
-            <p>Tutti i colleghi sono stati avvisati</p>
-            <div className="notif-users">
-              {notifiedUsers.map((name, i) => (
-                <span key={name} className="notif-user-chip" style={{ animationDelay: `${0.1 + i * 0.08}s` }}>
-                  ☕ {name}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div className="break-overlay active">
+          <span className="break-overlay-title">☕ Pausa inviata!</span>
+          <span className="break-overlay-subtitle">I tuoi colleghi hanno ricevuto l'invito.</span>
         </div>
       )}
     </>
@@ -94,13 +131,17 @@ function BreakButton({ logCoffee, setMascot, user }) {
 }
 
 /* --- Roulette --- */
-function RouletteSection({ userName, incrementStat, setMascot }) {
-  const stripRef = useRef(null);
+function RouletteSection({ userName, incrementStat, setMascot, members }) {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState('');
+  const stripRef = useRef(null);
 
-  const allNames = [...FAKE_COLLEAGUES];
-  if (userName) allNames.push(userName);
+  const allNames = useMemo(() => {
+    if (members && members.length > 1) {
+      return members.map(m => m.user?.userName || 'Sconosciuto');
+    }
+    return [userName, ...FAKE_COLLEAGUES];
+  }, [userName, members]);
 
   const buildStrip = useCallback(() => {
     if (!stripRef.current) return;
