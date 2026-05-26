@@ -65,10 +65,11 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
           </button>
 
           <div className="group-actions">
-            {showBack && (
+            {showBack ? (
               <button className="group-back-btn" onClick={onBack}>← Indietro</button>
+            ) : (
+              <button className="group-skip-btn" onClick={onSkip}>Salta per ora →</button>
             )}
-            <button className="group-skip-btn" onClick={onSkip}>Salta per ora →</button>
           </div>
         </div>
       )}
