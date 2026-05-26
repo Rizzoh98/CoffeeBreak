@@ -1,0 +1,22 @@
+export const DAILY_POLLS = [
+  { q: "Ananas sulla pizza?", options: ["Assolutamente sì! 🍍", "Mai nella vita! 🚫"] },
+  { q: "Caffè amaro o dolce?", options: ["Amaro, come la vita ☕", "Dolce, con tanto zucchero 🍬"] },
+  { q: "Riunione il lunedì o il venerdì?", options: ["Lunedì, così ci si toglie il pensiero", "Venerdì, tanto chi lavora?"] },
+  { q: "Lavorare da casa o in ufficio?", options: ["Casa, in pigiama! 🏠", "Ufficio, voglio i colleghi! 🏢"] },
+  { q: "Gatti o cani?", options: ["Team Gatto 🐱", "Team Cane 🐶"] },
+  { q: "Pizza o pasta?", options: ["Pizza forever 🍕", "Pasta tutta la vita 🍝"] },
+  { q: "Estate o inverno?", options: ["Estate, mare e sole! ☀️", "Inverno, coperte e cioccolata! ❄️"] },
+  { q: "Sveglia alle 6 o dormire fino a tardi?", options: ["Sveglia presto, carpe diem! 🌅", "Dormire, non scherziamo 😴"] },
+  { q: "Serie TV o film?", options: ["Serie TV, più da vedere! 📺", "Film, tutto in una sera 🎬"] },
+  { q: "Dolce o salato a colazione?", options: ["Dolce: brioche e cappuccino 🥐", "Salato: uova e pancetta 🍳"] },
+  { q: "Meglio un lunedì corto o un venerdì lungo?", options: ["Lunedì corto, via subito! ⚡", "Venerdì lungo, più weekend! 🎉"] },
+  { q: "Musica durante il lavoro?", options: ["Sempre, non posso farne a meno 🎵", "Mai, mi distraggo troppo 🤫"] },
+  { q: "Caffè al bar o alla macchinetta?", options: ["Bar, qualità premium ☕", "Macchinetta, praticità! ⚡"] },
+  { q: "Meglio parlare in call o via chat?", options: ["Call, si risolve prima 📞", "Chat, così ho tempo di pensare 💬"] },
+  { q: "Il collega ideale: silenzioso o chiacchierone?", options: ["Silenzioso, produttività! 🤐", "Chiacchierone, si ride di più! 😂"] },
+  { q: "Scrivania ordinata o caos creativo?", options: ["Ordinata, ogni cosa al suo posto 📐", "Caos creativo, genio al lavoro 🎨"] },
+  { q: "Meglio il tiramisù o la cheesecake?", options: ["Tiramisù, orgoglio italiano! 🇮🇹", "Cheesecake, troppo buona! 🍰"] },
+  { q: "Vacanza al mare o in montagna?", options: ["Mare, spiaggia e relax 🏖️", "Montagna, aria fresca e trekking 🏔️"] },
+  { q: "Film di supereroi o horror?", options: ["Supereroi, azione e popcorn! 🦸", "Horror, adrenalina pura! 👻"] },
+  { q: "Preferisci viaggiare in treno o in aereo?", options: ["Treno, si gode il panorama 🚂", "Aereo, si arriva prima! ✈️"] }
+];
