@@ -34,7 +34,7 @@ export default function BreakScreen() {
       />
 
       {activeGroupCode && colleagues.length > 0 && (
-        <ColleaguesList colleagues={colleagues} />
+        <ColleaguesList colleagues={colleagues} authUser={authUser} />
       )}
 
       <div className="confetti-container" id="confetti-container" aria-hidden="true" />
@@ -51,17 +51,18 @@ export default function BreakScreen() {
   );
 }
 
-function ColleaguesList({ colleagues }) {
+function ColleaguesList({ colleagues, authUser }) {
   return (
     <div className="colleagues-section">
       <span className="section-label">👥 Nel tuo gruppo ora</span>
       <div className="colleagues-horizontal-list">
         {colleagues.map(c => {
           const coffee = getCoffeeType(c.user?.coffeeType || 'espresso');
+          const safeName = c.user?.userName || 'Anonimo';
           return (
             <div key={c.uid} className="colleague-avatar-card">
-               <div className="avatar-circle">{c.user?.userName?.charAt(0).toUpperCase()}</div>
-               <span className="colleague-name">{c.user?.userName?.split(' ')[0]} {c.uid === authUser?.uid ? '(Tu)' : ''}</span>
+               <div className="avatar-circle">{safeName.charAt(0).toUpperCase()}</div>
+               <span className="colleague-name">{safeName.split(' ')[0]} {c.uid === authUser?.uid ? '(Tu)' : ''}</span>
                <span className="colleague-status">{coffee.emoji} {c.stats?.breakToday || 0}</span>
             </div>
           );
@@ -83,7 +84,7 @@ function BreakButton({ logCoffee, setMascot, user, authUser, activeGroupCode }) 
 
     // Create real invite in Firestore
     if (activeGroupCode && authUser) {
-      await createInvite(activeGroupCode, authUser.uid, user.userName, user.coffeeType || 'espresso');
+      await createInvite(activeGroupCode, authUser.uid, user?.userName || 'Anonimo', user?.coffeeType || 'espresso');
     }
 
     setTimeout(() => {
