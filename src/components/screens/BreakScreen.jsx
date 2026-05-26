@@ -5,7 +5,7 @@ import { shuffleArray, launchConfetti } from '../../utils/helpers';
 import { useTimer } from '../../hooks/useTimer';
 
 export default function BreakScreen() {
-  const { state, incrementStat, dispatch, setMascot, addToast } = useApp();
+  const { state, incrementStat, dispatch, setMascot, addToast, logCoffee } = useApp();
 
   return (
     <section className="screen active" data-screen="break">
@@ -14,7 +14,7 @@ export default function BreakScreen() {
         <p className="screen-subtitle">Richiama i tuoi colleghi!</p>
       </div>
 
-      <BreakButton incrementStat={incrementStat} dispatch={dispatch} setMascot={setMascot} stats={state.stats} />
+      <BreakButton logCoffee={logCoffee} setMascot={setMascot} user={state.user} />
 
       <div className="confetti-container" id="confetti-container" aria-hidden="true" />
 
@@ -26,23 +26,15 @@ export default function BreakScreen() {
 }
 
 /* --- Break Button --- */
-function BreakButton({ incrementStat, dispatch, setMascot, stats }) {
+function BreakButton({ logCoffee, setMascot, user }) {
   const [status, setStatus] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
   const [notifiedUsers, setNotifiedUsers] = useState([]);
 
   const sendBreak = () => {
     setMascot('drinking');
-    incrementStat('breakCount');
-
-    const today = new Date().toDateString();
-    dispatch({
-      type: 'UPDATE_STATS',
-      payload: {
-        breakToday: (stats.breakTodayDate === today ? stats.breakToday : 0) + 1,
-        breakTodayDate: today
-      }
-    });
+    // Log coffee with user's preferences — auto-tracks calories
+    logCoffee(user?.coffeeType || 'espresso', user?.sugarLevel ?? 0);
 
     setTimeout(() => {
       const shuffled = shuffleArray(FAKE_COLLEAGUES);

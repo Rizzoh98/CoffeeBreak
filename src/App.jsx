@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav';
 import Mascot from './components/Mascot';
 import ToastContainer from './components/ToastContainer';
 import BadgePopup from './components/BadgePopup';
+import ProfileDrawer from './components/ProfileDrawer';
 import CuriositaScreen from './components/screens/CuriositaScreen';
 import GiochiScreen from './components/screens/GiochiScreen';
 import BreakScreen from './components/screens/BreakScreen';
@@ -37,8 +38,8 @@ export default function App() {
     </>
   );
 
-  // Show onboarding if no user
-  if (!state.user) {
+  // Show onboarding if not completed (step < 3)
+  if (state.onboardingStep < 3) {
     return (
       <>
         {bgEffects}
@@ -65,6 +66,7 @@ export default function App() {
         <BottomNav />
       </div>
 
+      <ProfileDrawer />
       <BadgePopup />
     </>
   );

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { BADGES, checkBadgeCondition } from '../data/badges';
+import { calculateCalories } from '../data/coffeeTypes';
 
 const AppContext = createContext();
 
@@ -9,19 +10,29 @@ const DEFAULT_STATS = {
   slotAttempts: 0, slotWins: 0,
   pollVotes: 0, zenCount: 0, rouletteChosen: 0,
   streak: 1, lastVisitDate: '',
-  sectionsVisited: 0, visitedSections: {}
+  sectionsVisited: 0, visitedSections: {},
+  totalCalories: 0, caloriesToday: 0, caloriesTodayDate: ''
 };
 
 const initialState = {
-  user: null,             // { userName, interests }
+  user: null,
+  /* user shape: {
+    userName, interests,
+    coffeeType,    // coffee key string
+    sugarLevel,    // 0-3
+    group: { name, code, isCreator } | null
+  } */
+  onboardingStep: 0,    // 0 = not started, 1 = profile, 2 = group, 3 = done
   currentScreen: 'break',
   stats: { ...DEFAULT_STATS },
   unlockedBadges: [],
   moodToday: null,
   pollVotedDays: {},
-  mascotState: 'idle',    // idle | sleeping | drinking | celebrating
-  pendingBadge: null,     // badge object to show in popup
-  toasts: []              // active toast messages
+  mascotState: 'idle',
+  pendingBadge: null,
+  toasts: [],
+  showProfile: false,   // profile drawer open/close
+  coffeeLog: []         // array of { timestamp, coffeeType, sugarLevel, kcal }
 };
 
 function loadSavedState() {
@@ -30,13 +41,29 @@ function loadSavedState() {
     const stateRaw = localStorage.getItem('coffeebreak_state');
     const user = userRaw ? JSON.parse(userRaw) : null;
     const saved = stateRaw ? JSON.parse(stateRaw) : {};
+
+    // Determine onboarding step
+    let onboardingStep = 0;
+    if (user) {
+      if (user.coffeeType !== undefined && user.group !== undefined) {
+        onboardingStep = 3; // fully done
+      } else if (user.coffeeType !== undefined) {
+        onboardingStep = 2; // needs group
+      } else if (user.userName) {
+        // Legacy user without coffee prefs — send to step 1 to complete
+        onboardingStep = 1;
+      }
+    }
+
     return {
       ...initialState,
       user,
+      onboardingStep,
       stats: { ...DEFAULT_STATS, ...(saved.stats || {}) },
       unlockedBadges: saved.unlockedBadges || [],
       moodToday: saved.moodToday || null,
-      pollVotedDays: saved.pollVotedDays || {}
+      pollVotedDays: saved.pollVotedDays || {},
+      coffeeLog: saved.coffeeLog || []
     };
   } catch {
     return initialState;
@@ -47,6 +74,10 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_USER':
       return { ...state, user: action.payload };
+    case 'UPDATE_USER':
+      return { ...state, user: { ...state.user, ...action.payload } };
+    case 'SET_ONBOARDING_STEP':
+      return { ...state, onboardingStep: action.payload };
     case 'NAVIGATE':
       return { ...state, currentScreen: action.payload };
     case 'UPDATE_STATS':
@@ -54,6 +85,26 @@ function reducer(state, action) {
     case 'INCREMENT_STAT': {
       const key = action.payload;
       return { ...state, stats: { ...state.stats, [key]: (state.stats[key] || 0) + 1 } };
+    }
+    case 'LOG_COFFEE': {
+      const { coffeeType, sugarLevel } = action.payload;
+      const kcal = calculateCalories(coffeeType, sugarLevel);
+      const today = new Date().toDateString();
+      const entry = { timestamp: Date.now(), coffeeType, sugarLevel, kcal };
+      const isNewDay = state.stats.caloriesTodayDate !== today;
+      return {
+        ...state,
+        coffeeLog: [...state.coffeeLog, entry],
+        stats: {
+          ...state.stats,
+          breakCount: state.stats.breakCount + 1,
+          breakToday: (isNewDay ? 0 : state.stats.breakToday) + 1,
+          breakTodayDate: today,
+          totalCalories: state.stats.totalCalories + kcal,
+          caloriesToday: (isNewDay ? 0 : state.stats.caloriesToday) + kcal,
+          caloriesTodayDate: today
+        }
+      };
     }
     case 'UNLOCK_BADGE':
       if (state.unlockedBadges.includes(action.payload.id)) return state;
@@ -78,15 +129,15 @@ function reducer(state, action) {
       return { ...state, toasts: [...state.toasts, action.payload] };
     case 'REMOVE_TOAST':
       return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
+    case 'TOGGLE_PROFILE':
+      return { ...state, showProfile: !state.showProfile };
+    case 'CLOSE_PROFILE':
+      return { ...state, showProfile: false };
     case 'VISIT_SECTION': {
       const visited = { ...state.stats.visitedSections, [action.payload]: true };
       return {
         ...state,
-        stats: {
-          ...state.stats,
-          visitedSections: visited,
-          sectionsVisited: Object.keys(visited).length
-        }
+        stats: { ...state.stats, visitedSections: visited, sectionsVisited: Object.keys(visited).length }
       };
     }
     default:
@@ -98,6 +149,15 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, loadSavedState);
   const mascotTimerRef = useRef(null);
 
+  // Persist user to localStorage
+  useEffect(() => {
+    if (state.user) {
+      try {
+        localStorage.setItem('coffeebreak_user', JSON.stringify(state.user));
+      } catch { /* ignore */ }
+    }
+  }, [state.user]);
+
   // Persist state changes to localStorage
   useEffect(() => {
     try {
@@ -105,10 +165,11 @@ export function AppProvider({ children }) {
         stats: state.stats,
         unlockedBadges: state.unlockedBadges,
         moodToday: state.moodToday,
-        pollVotedDays: state.pollVotedDays
+        pollVotedDays: state.pollVotedDays,
+        coffeeLog: state.coffeeLog
       }));
     } catch { /* ignore */ }
-  }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays]);
+  }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog]);
 
   // Update streak on load
   useEffect(() => {
@@ -125,64 +186,53 @@ export function AppProvider({ children }) {
 
     dispatch({
       type: 'UPDATE_STATS',
-      payload: { streak: newStreak, lastVisitDate: today, breakToday: 0, breakTodayDate: today }
+      payload: { streak: newStreak, lastVisitDate: today, breakToday: 0, breakTodayDate: today, caloriesToday: 0, caloriesTodayDate: today }
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Check badges whenever stats change
+  // Check badges
   const checkBadges = useCallback(() => {
     for (const badge of BADGES) {
       if (state.unlockedBadges.includes(badge.id)) continue;
       if (checkBadgeCondition(badge.id, state.stats)) {
         dispatch({ type: 'UNLOCK_BADGE', payload: badge });
-        break; // Show one badge at a time
+        break;
       }
     }
   }, [state.stats, state.unlockedBadges]);
 
-  useEffect(() => {
-    checkBadges();
-  }, [state.stats]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { checkBadges(); }, [state.stats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mascot auto-reset
   useEffect(() => {
     if (state.mascotState !== 'idle' && state.mascotState !== 'sleeping') {
       const ms = state.mascotState === 'drinking' ? 1500 : 1000;
-      mascotTimerRef.current = setTimeout(() => {
-        dispatch({ type: 'SET_MASCOT', payload: 'idle' });
-      }, ms);
+      mascotTimerRef.current = setTimeout(() => dispatch({ type: 'SET_MASCOT', payload: 'idle' }), ms);
       return () => clearTimeout(mascotTimerRef.current);
     }
   }, [state.mascotState]);
 
   // Helper actions
-  const setUser = useCallback((user) => {
-    localStorage.setItem('coffeebreak_user', JSON.stringify(user));
-    dispatch({ type: 'SET_USER', payload: user });
-  }, []);
-
+  const setUser = useCallback((user) => dispatch({ type: 'SET_USER', payload: user }), []);
+  const updateUser = useCallback((data) => dispatch({ type: 'UPDATE_USER', payload: data }), []);
   const navigateTo = useCallback((screen) => {
     dispatch({ type: 'NAVIGATE', payload: screen });
     dispatch({ type: 'VISIT_SECTION', payload: screen });
   }, []);
-
-  const incrementStat = useCallback((key) => {
-    dispatch({ type: 'INCREMENT_STAT', payload: key });
-  }, []);
-
-  const setMascot = useCallback((s) => {
-    dispatch({ type: 'SET_MASCOT', payload: s });
-  }, []);
-
+  const incrementStat = useCallback((key) => dispatch({ type: 'INCREMENT_STAT', payload: key }), []);
+  const setMascot = useCallback((s) => dispatch({ type: 'SET_MASCOT', payload: s }), []);
   const addToast = useCallback((sender, msg) => {
     const id = Date.now() + Math.random();
     dispatch({ type: 'ADD_TOAST', payload: { id, sender, msg } });
     setTimeout(() => dispatch({ type: 'REMOVE_TOAST', payload: id }), 4000);
   }, []);
+  const logCoffee = useCallback((coffeeType, sugarLevel) => {
+    dispatch({ type: 'LOG_COFFEE', payload: { coffeeType, sugarLevel } });
+  }, []);
 
   const value = {
     state, dispatch,
-    setUser, navigateTo, incrementStat, setMascot, addToast, checkBadges
+    setUser, updateUser, navigateTo, incrementStat, setMascot, addToast, checkBadges, logCoffee
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
