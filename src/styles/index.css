@@ -2520,6 +2520,14 @@ body::before {
     color: var(--color-caramel-light);
 }
 
+.join-error {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 8px 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
 .code-input {
     text-align: center;
     letter-spacing: 0.3em;

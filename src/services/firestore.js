@@ -1,25 +1,32 @@
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { 
+  doc, getDoc, setDoc, updateDoc, deleteField,
+  collection, query, where, onSnapshot, addDoc, 
+  serverTimestamp, arrayUnion, arrayRemove
+} from 'firebase/firestore';
 
-// Collection names
+// ============================================================
+// COLLECTION NAMES
+// ============================================================
 const USERS_COL = 'users';
+const GROUPS_COL = 'groups';
+const INVITES_COL = 'invites';
+
+// ============================================================
+// USER STATE SYNC
+// ============================================================
 
 /**
  * Syncs the entire user state (profile, stats, etc) to Firestore.
- * This can be used as a drop-in replacement/addition to localStorage.
  */
 export async function syncUserStateToCloud(uid, fullState) {
   if (!uid) return;
   try {
     const userRef = doc(db, USERS_COL, uid);
-    
-    // Convert undefined to null for Firestore compatibility
     const cleanState = JSON.parse(JSON.stringify(fullState));
     
-    // Compute groupCodes from the groups array — this is the field used for Firestore queries
+    // Compute groupCodes from the groups array for query indexing
     const groupCodes = (cleanState.user?.groups || []).map(g => g.code).filter(Boolean);
-    
-    console.log('[Firestore Sync]', uid, '→ groupCodes:', groupCodes, '→ activeGroupCode:', cleanState.user?.activeGroupCode);
     
     await setDoc(userRef, {
       ...cleanState,
@@ -28,7 +35,7 @@ export async function syncUserStateToCloud(uid, fullState) {
     }, { merge: true });
     
   } catch (error) {
-    console.error("Error syncing state to Firestore:", error);
+    console.error("[Firestore] Error syncing state:", error);
   }
 }
 
@@ -40,22 +47,98 @@ export async function fetchUserStateFromCloud(uid) {
   try {
     const userRef = doc(db, USERS_COL, uid);
     const docSnap = await getDoc(userRef);
-    
-    if (docSnap.exists()) {
-      return docSnap.data();
-    }
-    return null;
+    return docSnap.exists() ? docSnap.data() : null;
   } catch (error) {
-    console.error("Error fetching state from Firestore:", error);
+    console.error("[Firestore] Error fetching state:", error);
+    return null;
+  }
+}
+
+// ============================================================
+// GROUPS — dedicated collection as source of truth
+// ============================================================
+
+/**
+ * Creates a new group in Firestore.
+ * Document ID = the group code itself.
+ * @returns {{ name, code }} the group object for local state
+ */
+export async function createGroup(code, name, creatorUid, creatorName) {
+  try {
+    const groupRef = doc(db, GROUPS_COL, code);
+    await setDoc(groupRef, {
+      name,
+      code,
+      creatorUid,
+      createdAt: serverTimestamp(),
+      members: [{
+        uid: creatorUid,
+        name: creatorName,
+        joinedAt: new Date().toISOString()
+      }]
+    });
+    console.log("[Firestore] Group created:", code, name);
+    return { name, code, isCreator: true };
+  } catch (error) {
+    console.error("[Firestore] Error creating group:", error);
+    return null;
+  }
+}
+
+/**
+ * Joins an existing group by code.
+ * Returns the group data if found, null if code doesn't exist.
+ */
+export async function joinGroup(code, uid, userName) {
+  try {
+    const groupRef = doc(db, GROUPS_COL, code);
+    const groupSnap = await getDoc(groupRef);
+    
+    if (!groupSnap.exists()) {
+      console.warn("[Firestore] Group not found:", code);
+      return null; // Group doesn't exist
+    }
+    
+    const groupData = groupSnap.data();
+    
+    // Check if already a member
+    const alreadyMember = groupData.members?.some(m => m.uid === uid);
+    if (!alreadyMember) {
+      // Add user to the group's member list
+      await updateDoc(groupRef, {
+        members: arrayUnion({
+          uid,
+          name: userName,
+          joinedAt: new Date().toISOString()
+        })
+      });
+      console.log("[Firestore] User joined group:", code);
+    }
+    
+    return { name: groupData.name, code: groupData.code, isCreator: false };
+  } catch (error) {
+    console.error("[Firestore] Error joining group:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetches group info by code (for validation/display).
+ */
+export async function getGroup(code) {
+  try {
+    const groupRef = doc(db, GROUPS_COL, code);
+    const groupSnap = await getDoc(groupRef);
+    return groupSnap.exists() ? groupSnap.data() : null;
+  } catch (error) {
+    console.error("[Firestore] Error fetching group:", error);
     return null;
   }
 }
 
 /**
  * Real-time listener for all users in a specific group.
- * @param {string} groupCode - The code of the group to listen to.
- * @param {function} callback - Called with an array of user state objects.
- * @returns {function} unsubscribe function
+ * Uses the groupCodes array on user documents for efficient querying.
  */
 export function listenToGroupMembers(groupCode, callback) {
   if (!groupCode) return () => {};
@@ -69,15 +152,16 @@ export function listenToGroupMembers(groupCode, callback) {
     snapshot.forEach((docSnap) => {
       members.push({ uid: docSnap.id, ...docSnap.data() });
     });
+    console.log("[Firestore] Group members update:", groupCode, "→", members.length, "members");
     callback(members);
   }, (error) => {
-    console.error("Error listening to group members:", error);
+    console.error("[Firestore] Error listening to group members:", error);
   });
 }
 
-// --- INVITES SYSTEM ---
-
-const INVITES_COL = 'invites';
+// ============================================================
+// INVITES SYSTEM
+// ============================================================
 
 export async function createInvite(groupCode, senderUid, senderName, coffeeType) {
   try {
@@ -89,10 +173,10 @@ export async function createInvite(groupCode, senderUid, senderName, coffeeType)
       coffeeType,
       status: 'active',
       timestamp: serverTimestamp(),
-      responses: {} // uid -> { name, status: 'coming' | 'skipping' | '5min', timestamp }
+      responses: {}
     });
   } catch (error) {
-    console.error("Error creating invite:", error);
+    console.error("[Firestore] Error creating invite:", error);
   }
 }
 
@@ -107,15 +191,13 @@ export async function respondToInvite(inviteId, uid, name, status) {
       }
     });
   } catch (error) {
-    console.error("Error responding to invite:", error);
+    console.error("[Firestore] Error responding to invite:", error);
   }
 }
 
 export function listenToActiveInvite(groupCode, callback) {
   if (!groupCode) return () => {};
   
-  // To avoid complex index requirements (Firestore requires a composite index for multiple where clauses),
-  // we query only by groupCode and filter by active status in memory.
   const q = query(
     collection(db, INVITES_COL),
     where('groupCode', '==', groupCode)
@@ -129,16 +211,14 @@ export function listenToActiveInvite(groupCode, callback) {
         invites.push({ id: docSnap.id, ...data });
       }
     });
-    // Sort by timestamp descending in memory (avoiding firestore composite index requirement)
+    // Most recent first
     invites.sort((a, b) => {
       const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : Date.now();
       const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : Date.now();
       return tb - ta;
     });
-    
-    // Return the latest active invite
     callback(invites.length > 0 ? invites[0] : null);
   }, (error) => {
-    console.error("Error listening to invites:", error);
+    console.error("[Firestore] Error listening to invites:", error);
   });
 }

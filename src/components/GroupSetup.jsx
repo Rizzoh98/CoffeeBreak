@@ -1,31 +1,54 @@
 import React, { useState, useMemo } from 'react';
 import { generateGroupCode } from '../data/coffeeTypes';
+import { createGroup, joinGroup } from '../services/firestore';
+import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 
 export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
   const [mode, setMode] = useState(null); // null | 'create' | 'join'
   const [groupName, setGroupName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [createdGroup, setCreatedGroup] = useState(null);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  
+  const { authUser } = useAuth();
+  const { state } = useApp();
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     if (groupName.trim().length < 2) return;
     const code = generateGroupCode();
-    const group = { name: groupName.trim(), code, isCreator: true };
-    setCreatedGroup(group);
+    const userName = state.user?.userName || authUser?.displayName || 'Anonimo';
+    
+    // Create group in Firestore
+    const group = await createGroup(code, groupName.trim(), authUser.uid, userName);
+    if (group) {
+      setCreatedGroup(group);
+    }
   };
 
   const handleConfirmCreate = () => {
     onComplete(createdGroup);
   };
 
-  const handleJoinGroup = () => {
-    if (joinCode.trim().length < 4) return;
-    const group = {
-      name: `Gruppo ${joinCode.trim().toUpperCase()}`,
-      code: joinCode.trim().toUpperCase(),
-      isCreator: false
-    };
-    onComplete(group);
+  const handleJoinGroup = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (code.length < 4) return;
+    
+    setJoining(true);
+    setJoinError('');
+    
+    const userName = state.user?.userName || authUser?.displayName || 'Anonimo';
+    
+    // Try to join the group on Firestore
+    const group = await joinGroup(code, authUser.uid, userName);
+    
+    if (group) {
+      onComplete(group);
+    } else {
+      setJoinError('Gruppo non trovato. Controlla il codice e riprova.');
+    }
+    setJoining(false);
   };
 
   // Generate invite link
@@ -37,6 +60,12 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
   const copyLink = () => {
     if (inviteLink) {
       navigator.clipboard?.writeText(inviteLink);
+    }
+  };
+  
+  const copyCode = () => {
+    if (createdGroup?.code) {
+      navigator.clipboard?.writeText(createdGroup.code);
     }
   };
 
@@ -52,7 +81,7 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
             <span className="group-choice-icon">🏗️</span>
             <div className="group-choice-info">
               <span className="group-choice-title">Crea un nuovo gruppo</span>
-              <span className="group-choice-desc">Invita i colleghi con un codice o QR</span>
+              <span className="group-choice-desc">Invita i colleghi con un codice</span>
             </div>
           </button>
 
@@ -60,7 +89,7 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
             <span className="group-choice-icon">🤝</span>
             <div className="group-choice-info">
               <span className="group-choice-title">Unisciti a un gruppo</span>
-              <span className="group-choice-desc">Inserisci un codice o scansiona un QR</span>
+              <span className="group-choice-desc">Inserisci il codice ricevuto</span>
             </div>
           </button>
 
@@ -68,7 +97,7 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
             {showBack ? (
               <button className="group-back-btn" onClick={onBack}>← Indietro</button>
             ) : (
-              <button className="group-skip-btn" onClick={onSkip}>Salta per ora →</button>
+              onSkip && <button className="group-skip-btn" onClick={onSkip}>Salta per ora →</button>
             )}
           </div>
         </div>
@@ -94,7 +123,7 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
         </div>
       )}
 
-      {/* Group Created — Show code & QR */}
+      {/* Group Created — Show code */}
       {mode === 'create' && createdGroup && (
         <div className="group-created onboarding-step-enter">
           <p className="group-title">🎉 Gruppo creato!</p>
@@ -108,17 +137,13 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
           <div className="group-share-section">
             <p className="group-share-label">Condividi con i colleghi:</p>
 
-            <button className="group-share-btn" onClick={copyLink}>
-              📋 Copia link invito
+            <button className="group-share-btn" onClick={copyCode}>
+              📋 Copia codice
             </button>
-
-            <div className="group-qr-container" id="group-qr">
-              <div className="qr-placeholder">
-                <span className="qr-icon">📱</span>
-                <span className="qr-text">QR Code</span>
-                <span className="qr-code-text">{createdGroup.code}</span>
-              </div>
-            </div>
+            
+            <button className="group-share-btn" onClick={copyLink} style={{ marginTop: '8px' }}>
+              🔗 Copia link invito
+            </button>
           </div>
 
           <button className="onboarding-btn" onClick={handleConfirmCreate}>
@@ -143,21 +168,22 @@ export default function GroupSetup({ onComplete, onSkip, showBack, onBack }) {
                   maxLength={6} autoComplete="off"
                 />
               </div>
-              <button className="onboarding-btn" disabled={joinCode.trim().length < 4} onClick={handleJoinGroup}>
-                <span className="btn-text">Unisciti ✨</span>
+              
+              {joinError && (
+                <p className="join-error">❌ {joinError}</p>
+              )}
+              
+              <button 
+                className="onboarding-btn" 
+                disabled={joinCode.trim().length < 4 || joining} 
+                onClick={handleJoinGroup}
+              >
+                <span className="btn-text">{joining ? 'Ricerca...' : 'Unisciti ✨'}</span>
               </button>
             </div>
-
-            <div className="join-divider">
-              <span>oppure</span>
-            </div>
-
-            <button className="join-scan-btn" onClick={() => {/* QR scanner placeholder */}}>
-              📷 Scansiona QR Code
-            </button>
           </div>
 
-          <button className="group-back-btn" onClick={() => setMode(null)}>← Indietro</button>
+          <button className="group-back-btn" onClick={() => { setMode(null); setJoinError(''); }}>← Indietro</button>
         </div>
       )}
     </div>
