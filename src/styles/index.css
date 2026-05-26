@@ -2994,6 +2994,7 @@ body::before {
     font-size: 1rem;
     color: var(--text-secondary);
     margin-bottom: 30px;
+    text-align: center;
 }
 
 .auth-section {
