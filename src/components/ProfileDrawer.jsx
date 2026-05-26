@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { getCoffeeType, getSugarLevel, calculateCalories, COFFEE_TYPES, SUGAR_LEVELS } from '../data/coffeeTypes';
 
 export default function ProfileDrawer() {
   const { state, dispatch, setUser } = useApp();
+  const { authUser, signOut } = useAuth();
   const { user, stats, coffeeLog } = state;
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(user?.userName || '');
@@ -45,10 +47,17 @@ export default function ProfileDrawer() {
         <div className="profile-drawer-body">
           {/* Avatar & Info */}
           <div className="profile-avatar-section">
-            <div className="profile-avatar-large">
-              <span>{user.userName.charAt(0).toUpperCase()}</span>
-            </div>
+            {authUser?.photoURL ? (
+              <img src={authUser.photoURL} alt="" className="profile-avatar-large profile-avatar-img" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="profile-avatar-large">
+                <span>{user.userName.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
             <h3 className="profile-name">{user.userName}</h3>
+            {authUser?.email && (
+              <p className="profile-email">{authUser.email}</p>
+            )}
             {user.group && (
               <p className="profile-group-badge">
                 👥 {user.group.name}
@@ -196,6 +205,11 @@ export default function ProfileDrawer() {
               </div>
             </div>
           )}
+
+          {/* Sign Out */}
+          <button className="profile-signout-btn" onClick={signOut}>
+            🚪 Esci dall'account
+          </button>
         </div>
       </div>
     </>

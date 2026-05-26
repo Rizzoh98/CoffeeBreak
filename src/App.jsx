@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from './context/AppContext';
+import { useAuth } from './context/AuthContext';
 import Onboarding from './components/Onboarding';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -23,6 +24,7 @@ const SCREENS = {
 
 export default function App() {
   const { state } = useApp();
+  const { isAuthenticated, authLoading } = useAuth();
 
   // Background effects (always rendered)
   const bgEffects = (
@@ -38,8 +40,21 @@ export default function App() {
     </>
   );
 
-  // Show onboarding if not completed (step < 3)
-  if (state.onboardingStep < 3) {
+  // Show loading spinner while Firebase checks auth
+  if (authLoading) {
+    return (
+      <>
+        {bgEffects}
+        <div className="auth-loading">
+          <div className="auth-loading-spinner" />
+          <span className="auth-loading-text">☕</span>
+        </div>
+      </>
+    );
+  }
+
+  // Show onboarding if not authenticated or profile not completed
+  if (!isAuthenticated || state.onboardingStep < 3) {
     return (
       <>
         {bgEffects}
