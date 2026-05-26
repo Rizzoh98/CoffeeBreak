@@ -15,7 +15,11 @@ export async function syncUserStateToCloud(uid, fullState) {
     
     // Convert undefined to null for Firestore compatibility
     const cleanState = JSON.parse(JSON.stringify(fullState));
-    const groupCodes = cleanState.user?.groups?.map(g => g.code) || [];
+    
+    // Compute groupCodes from the groups array — this is the field used for Firestore queries
+    const groupCodes = (cleanState.user?.groups || []).map(g => g.code).filter(Boolean);
+    
+    console.log('[Firestore Sync]', uid, '→ groupCodes:', groupCodes, '→ activeGroupCode:', cleanState.user?.activeGroupCode);
     
     await setDoc(userRef, {
       ...cleanState,

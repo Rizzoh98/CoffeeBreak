@@ -48,13 +48,18 @@ function loadSavedState() {
     if (user && user.group && !user.groups) {
       user.groups = [user.group];
       user.activeGroupCode = user.group.code;
+    }
+    // Always clean up legacy key
+    if (user) {
       delete user.group;
+      delete user.groupCodes; // Firestore-only field
+      if (!user.groups) user.groups = [];
     }
 
     // Determine onboarding step
     let onboardingStep = 0;
     if (user) {
-      if (user.coffeeType !== undefined && (user.groups !== undefined || user.group !== undefined)) {
+      if (user.coffeeType !== undefined && user.groups !== undefined) {
         onboardingStep = 3; // fully done
       } else if (user.coffeeType !== undefined) {
         onboardingStep = 2; // needs group
@@ -161,14 +166,24 @@ function reducer(state, action) {
     }
     case 'RESTORE_STATE_FROM_CLOUD': {
       let restoredUser = action.payload.user;
-      if (restoredUser && restoredUser.group && !restoredUser.groups) {
-        restoredUser.groups = [restoredUser.group];
-        restoredUser.activeGroupCode = restoredUser.group.code;
+      if (restoredUser) {
+        // Migrate legacy single group → multi-group
+        if (restoredUser.group && !restoredUser.groups) {
+          restoredUser.groups = [restoredUser.group];
+          restoredUser.activeGroupCode = restoredUser.group.code;
+        }
+        // Always clean up legacy key
         delete restoredUser.group;
+        // Strip Firestore-only computed field
+        delete restoredUser.groupCodes;
+        // Ensure groups array always exists
+        if (!restoredUser.groups) restoredUser.groups = [];
       }
+      // Strip top-level groupCodes if it leaked
+      const { groupCodes, lastSynced, ...cleanPayload } = action.payload;
       return {
         ...state,
-        ...action.payload,
+        ...cleanPayload,
         user: restoredUser,
         onboardingStep: 3 // If they have cloud state, they finished onboarding
       };
@@ -200,28 +215,14 @@ export function AppProvider({ children }) {
     loadCloudState();
   }, [authUser]);
 
-  // Persist user to localStorage & Cloud
+  // Persist to localStorage & Cloud (single consolidated effect)
+  const syncTimeoutRef = useRef(null);
   useEffect(() => {
-    if (state.user) {
-      try {
-        localStorage.setItem('coffeebreak_user', JSON.stringify(state.user));
-        if (authUser && !isCloudSyncing) {
-            syncUserStateToCloud(authUser.uid, {
-                user: state.user,
-                stats: state.stats,
-                unlockedBadges: state.unlockedBadges,
-                moodToday: state.moodToday,
-                pollVotedDays: state.pollVotedDays,
-                coffeeLog: state.coffeeLog
-            });
-        }
-      } catch { /* ignore */ }
-    }
-  }, [state.user, authUser, isCloudSyncing, state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog]);
-
-  // Persist state changes to localStorage & Cloud
-  useEffect(() => {
+    if (!state.user) return;
+    
+    // Save to localStorage immediately
     try {
+      localStorage.setItem('coffeebreak_user', JSON.stringify(state.user));
       const stateToSave = {
         stats: state.stats,
         unlockedBadges: state.unlockedBadges,
@@ -230,12 +231,25 @@ export function AppProvider({ children }) {
         coffeeLog: state.coffeeLog
       };
       localStorage.setItem('coffeebreak_state', JSON.stringify(stateToSave));
-      
-      if (authUser && state.user && !isCloudSyncing) {
-          syncUserStateToCloud(authUser.uid, { user: state.user, ...stateToSave });
-      }
     } catch { /* ignore */ }
-  }, [state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog, authUser, state.user, isCloudSyncing]);
+
+    // Debounced cloud sync — wait 500ms to batch rapid state changes
+    if (authUser && !isCloudSyncing) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        syncUserStateToCloud(authUser.uid, {
+          user: state.user,
+          stats: state.stats,
+          unlockedBadges: state.unlockedBadges,
+          moodToday: state.moodToday,
+          pollVotedDays: state.pollVotedDays,
+          coffeeLog: state.coffeeLog
+        });
+      }, 500);
+    }
+
+    return () => clearTimeout(syncTimeoutRef.current);
+  }, [state.user, state.stats, state.unlockedBadges, state.moodToday, state.pollVotedDays, state.coffeeLog, authUser, isCloudSyncing]);
 
   // Update streak on load
   useEffect(() => {

@@ -60,12 +60,15 @@ export default function ProfileDrawer() {
             {authUser?.email && (
               <p className="profile-email">{authUser.email}</p>
             )}
-            {user.group && (
-              <p className="profile-group-badge">
-                👥 {user.group.name}
-                <span className="profile-group-code">#{user.group.code}</span>
-              </p>
-            )}
+            {user.groups?.length > 0 && (() => {
+              const activeGroup = user.groups.find(g => g.code === user.activeGroupCode) || user.groups[0];
+              return (
+                <p className="profile-group-badge">
+                  👥 {activeGroup.name}
+                  <span className="profile-group-code">#{activeGroup.code}</span>
+                </p>
+              );
+            })()}
           </div>
 
           {/* Coffee Preferences */}

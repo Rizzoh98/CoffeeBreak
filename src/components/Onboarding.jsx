@@ -75,8 +75,12 @@ export default function Onboarding() {
       coffeeType,
       sugarLevel,
       interests: [...interests],
-      group: state.user?.group || null
+      // Preserve existing multi-group data if present
+      groups: state.user?.groups || [],
+      activeGroupCode: state.user?.activeGroupCode || null
     };
+    // Remove legacy 'group' key if present
+    delete user.group;
     setUser(user);
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: 2 });
     setStep(2);
@@ -86,22 +90,31 @@ export default function Onboarding() {
   const handleGroupComplete = (group) => {
     // If skipping group, just mark onboarding complete
     if (!group) {
+      const cleanUser = { ...state.user, groups: state.user?.groups || [], activeGroupCode: state.user?.activeGroupCode || null };
+      delete cleanUser.group;
+      setUser(cleanUser);
       dispatch({ type: 'SET_ONBOARDING_STEP', payload: 3 });
       return;
     }
 
-    // Save initial group to user profile in new format
-    setUser({ 
-        ...state.user, 
-        groups: [group],
-        activeGroupCode: group.code
-    });
+    // Merge new group into existing groups (don't overwrite)
+    const existingGroups = state.user?.groups || [];
+    const alreadyInGroup = existingGroups.some(g => g.code === group.code);
+    const newGroups = alreadyInGroup ? existingGroups : [...existingGroups, group];
+    const cleanUser = {
+      ...state.user,
+      groups: newGroups,
+      activeGroupCode: group.code
+    };
+    delete cleanUser.group;
+    setUser(cleanUser);
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: 3 });
   };
 
   const handleSkipGroup = () => {
-    const updatedUser = { ...state.user, group: null };
-    setUser(updatedUser);
+    const cleanUser = { ...state.user, groups: state.user?.groups || [], activeGroupCode: state.user?.activeGroupCode || null };
+    delete cleanUser.group;
+    setUser(cleanUser);
     dispatch({ type: 'SET_ONBOARDING_STEP', payload: 3 });
   };
 
