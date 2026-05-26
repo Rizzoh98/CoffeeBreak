@@ -6,17 +6,10 @@ export default function ToastContainer() {
   const { state, addToast, dispatch } = useApp();
   const timerRef = useRef(null);
 
+  // No more fake random toasts
   useEffect(() => {
-    const scheduleNext = (delay) => {
-      timerRef.current = setTimeout(() => {
-        const t = TOAST_MESSAGES[Math.floor(Math.random() * TOAST_MESSAGES.length)];
-        addToast(t.sender, t.msg);
-        scheduleNext(45000 + Math.random() * 45000);
-      }, delay);
-    };
-    scheduleNext(30000 + Math.random() * 30000);
-    return () => clearTimeout(timerRef.current);
-  }, [addToast]);
+    // In future, real-time listener for group events will go here
+  }, []);
 
   const dismiss = (id) => {
     dispatch({ type: 'REMOVE_TOAST', payload: id });

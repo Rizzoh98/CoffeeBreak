@@ -299,10 +299,11 @@ body::before {
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
-    background: rgba(13, 10, 6, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(13, 10, 6, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 20px;
 }
 
 .header-left {

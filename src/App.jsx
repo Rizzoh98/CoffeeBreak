@@ -70,10 +70,9 @@ export default function App() {
     <>
       {bgEffects}
       <div className="app" id="app">
-        <Header />
-        <ToastContainer />
-
         <main className="screens-container" id="screens-container">
+          <Header />
+          <ToastContainer />
           <ActiveScreen />
         </main>
 
